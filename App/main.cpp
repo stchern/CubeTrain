@@ -15,7 +15,7 @@ using namespace glm;
 
 void goAlongPath(const float *path, float *train_positions);
 void changeTrainPositions(const glm::vec3& start_position, float distance, vector<Object *>& outTrain);
-glm::vec3 catmull_rom_spline(const std::vector<glm::vec3>& control_points, float t);
+glm::vec3 catmull_rom_spline_loop(const std::vector<glm::vec3>& control_points, float t);
 
 int main()
 {
@@ -43,16 +43,16 @@ int main()
     plane->setScale(20.0f);
 
 //	// path
-    const float path[] = {
-         0.0f, -0.375f,  7.0f, // 1
-        -6.0f, -0.375f,  5.0f, // 2
-        -8.0f, -0.375f,  1.0f, // 3
-        -4.0f, -0.375f, -6.0f, // 4
-         0.0f, -0.375f, -7.0f, // 5
-         1.0f, -0.375f, -4.0f, // 6
-         4.0f, -0.375f, -3.0f, // 7
-         8.0f, -0.375f,  7.0f  // 8
-    };
+//    const float path[] = {
+//         0.0f, -0.375f,  7.0f, // 1
+//        -6.0f, -0.375f,  5.0f, // 2
+//        -8.0f, -0.375f,  1.0f, // 3
+//        -4.0f, -0.375f, -6.0f, // 4
+//         0.0f, -0.375f, -7.0f, // 5
+//         1.0f, -0.375f, -4.0f, // 6
+//         4.0f, -0.375f, -3.0f, // 7
+//         8.0f, -0.375f,  7.0f  // 8
+//    };
 
     const std::vector<glm::vec3> control_points {
         glm::vec3{  0.0f, -0.375f,  7.0f},
@@ -63,17 +63,15 @@ int main()
         glm::vec3{  1.0f, -0.375f, -4.0f},
         glm::vec3{  4.0f, -0.375f, -3.0f},
         glm::vec3{  8.0f, -0.375f,  7.0f},
-        glm::vec3{  0.0f, -0.375f,  7.0f},
-        glm::vec3{ -6.0f, -0.375f,  5.0f},
-        glm::vec3{ -8.0f, -0.375f,  1.0f},
 
     };
     vector<Object *> points;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < control_points.size(); i++)
     {
         Object *sphere = engine->createObject(&sphere_mesh);
         sphere->setColor(1, 0, 0);
-        sphere->setPosition(path[i*3], path[i*3+1], path[i*3+2]);
+//        sphere->setPosition(path[i*3], path[i*3+1], path[i*3+2]);
+        sphere->setPosition(control_points[i]);
         sphere->setScale(0.25f);
         points.push_back(sphere);
     }
@@ -81,8 +79,8 @@ int main()
 
     std::vector<glm::vec3> spline;
     const float step = 0.00005f;
-    for (float t = 0; t < (float)control_points.size() - 3.0f; t += step) {
-        spline.push_back(catmull_rom_spline(control_points, t));
+    for (float t = 0; t < (float)control_points.size(); t += step) {
+        spline.push_back(catmull_rom_spline_loop(control_points, t));
     }
 
     LineDrawer path_drawer(spline, true);
@@ -107,8 +105,9 @@ int main()
         engine->render();
 
         path_drawer.draw();
-        changeTrainPositions(glm::vec3{path[pointIdx * 3], path[pointIdx * 3 + 1], path[pointIdx * 3 + 2]}, distance_between_cubes, train);
-        ++pointIdx %= points.size();
+//        changeTrainPositions(glm::vec3{path[pointIdx * 3], path[pointIdx * 3 + 1], path[pointIdx * 3 + 2]}, distance_between_cubes, train);
+        changeTrainPositions(control_points[pointIdx], distance_between_cubes, train);
+        ++pointIdx %= control_points.size();
         engine->swap();
     }
 
@@ -133,13 +132,14 @@ void changeTrainPositions(const glm::vec3& start_position, float distance, vecto
     }
 }
 
-glm::vec3 catmull_rom_spline(const std::vector<glm::vec3>& control_points, float t)
+glm::vec3 catmull_rom_spline_loop(const std::vector<glm::vec3>& control_points, float t)
 {
     // indices of the relevant control points
-    const int i1 = (int)t + 1;
-    const int i2 = i1 + 1;
-    const int i3 = i2 + 1;
-    const int i0 = i1 - 1;
+    const size_t size = control_points.size();
+    const int idx1 = (int)t;
+    const int idx2 = (idx1 + 1) % size;
+    const int idx3 = (idx2 + 1) % size;
+    const int idx0 = idx1 >= 1 ? idx1 - 1 : size - 1;
     const float local_t = t - (int)t;
-    return glm::catmullRom(control_points[i0], control_points[i1], control_points[i2], control_points[i3], local_t);
+    return glm::catmullRom(control_points[idx0], control_points[idx1], control_points[idx2], control_points[idx3], local_t);
 }
