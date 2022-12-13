@@ -1,5 +1,7 @@
 #include "framework/engine.h"
 #include "framework/utils.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/spline.hpp>
 #include <iostream>
 using namespace std;
 using namespace glm;
@@ -12,7 +14,8 @@ using namespace glm;
 */
 
 void goAlongPath(const float *path, float *train_positions);
-void changeTrainPositions(const vec3& start_position, float distance, vector<Object *>& outTrain);
+void changeTrainPositions(const glm::vec3& start_position, float distance, vector<Object *>& outTrain);
+glm::vec3 catmull_rom_spline(const std::vector<glm::vec3>& control_points, float t);
 
 int main()
 {
@@ -50,6 +53,21 @@ int main()
          4.0f, -0.375f, -3.0f, // 7
          8.0f, -0.375f,  7.0f  // 8
     };
+
+    const std::vector<glm::vec3> control_points {
+        glm::vec3{  0.0f, -0.375f,  7.0f},
+        glm::vec3{ -6.0f, -0.375f,  5.0f},
+        glm::vec3{ -8.0f, -0.375f,  1.0f},
+        glm::vec3{ -4.0f, -0.375f, -6.0f},
+        glm::vec3{  0.0f, -0.375f, -7.0f},
+        glm::vec3{  1.0f, -0.375f, -4.0f},
+        glm::vec3{  4.0f, -0.375f, -3.0f},
+        glm::vec3{  8.0f, -0.375f,  7.0f},
+        glm::vec3{  0.0f, -0.375f,  7.0f},
+        glm::vec3{ -6.0f, -0.375f,  5.0f},
+        glm::vec3{ -8.0f, -0.375f,  1.0f},
+
+    };
     vector<Object *> points;
     for (int i = 0; i < 8; i++)
     {
@@ -59,8 +77,15 @@ int main()
         sphere->setScale(0.25f);
         points.push_back(sphere);
     }
-    LineDrawer path_drawer(path, points.size(), true);
+//    LineDrawer path_drawer(path, points.size(), true);
 
+    std::vector<glm::vec3> spline;
+    const float step = 0.00005f;
+    for (float t = 0; t < (float)control_points.size() - 3.0f; t += step) {
+        spline.push_back(catmull_rom_spline(control_points, t));
+    }
+
+    LineDrawer path_drawer(spline, true);
 
     const float distance_between_cubes = 0.30f;
     glm::vec3 train_position{0.0f, -0.375f,  7.0f};
@@ -97,13 +122,24 @@ void goAlongPath(const float *path, float *train_positions)
 
 }
 
-void changeTrainPositions(const vec3& start_position, float distance, vector<Object *>& outTrain)
+void changeTrainPositions(const glm::vec3& start_position, float distance, vector<Object *>& outTrain)
 {
     outTrain[0]->setPosition(start_position);
-    vec3 next_position = start_position;
+    glm::vec3 next_position = start_position;
     next_position.x += distance;
     for (size_t idx = 1; idx < outTrain.size(); ++idx) {
         outTrain[idx]->setPosition(next_position);
         next_position.x += distance;
     }
+}
+
+glm::vec3 catmull_rom_spline(const std::vector<glm::vec3>& control_points, float t)
+{
+    // indices of the relevant control points
+    const int i1 = (int)t + 1;
+    const int i2 = i1 + 1;
+    const int i3 = i2 + 1;
+    const int i0 = i1 - 1;
+    const float local_t = t - (int)t;
+    return glm::catmullRom(control_points[i0], control_points[i1], control_points[i2], control_points[i3], local_t);
 }
