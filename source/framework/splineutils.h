@@ -6,6 +6,9 @@
 namespace SplineUtils
 {
 
+std::vector<glm::vec3> splineByControlPoints(
+        const std::vector<glm::vec3>& control_points, float step,
+        std::vector<glm::vec3>& out_left_rails, std::vector<glm::vec3>& out_right_rails);
 glm::vec3 point_on_loop_spline(const std::vector<glm::vec3>& control_points, float t);
 glm::vec3 gradient_on_loop_spline(const std::vector<glm::vec3>& control_points, float t);
 float totalSplineLength(const std::vector<glm::vec3>& spline);

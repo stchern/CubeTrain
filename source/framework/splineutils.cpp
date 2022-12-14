@@ -3,6 +3,26 @@
 #include <glm/gtx/spline.hpp>
 
 
+std::vector<glm::vec3> SplineUtils::splineByControlPoints(
+        const std::vector<glm::vec3>& control_points, float step,
+        std::vector<glm::vec3>& out_left_rails, std::vector<glm::vec3>& out_right_rails)
+{
+    const float width_rails = 0.25f;
+    std::vector<glm::vec3> spline;
+    for (float t = 0; t < (float)control_points.size(); t += step) {
+        glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, t);
+        glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, t);
+        float r = atan2(spline_grad.z, -spline_grad.x);
+        glm::vec3 right_point{width_rails * sin(r) + spline_position.x, spline_position.y, width_rails * cos(r) + spline_position.z};
+        glm::vec3 left_point{-width_rails * sin(r) + spline_position.x, spline_position.y, -width_rails * cos(r) + spline_position.z};
+
+        spline.push_back(spline_position);
+        out_left_rails.push_back(left_point);
+        out_right_rails.push_back(right_point);
+    }
+    return spline;
+}
+
 glm::vec3 SplineUtils::point_on_loop_spline(const std::vector<glm::vec3>& control_points, float t)
 {
     const size_t size = control_points.size();
