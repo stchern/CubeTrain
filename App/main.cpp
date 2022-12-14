@@ -31,7 +31,6 @@ int main()
     Mesh plane_mesh = createPlane();
     Mesh sphere_mesh = createSphere();
     Mesh cube_mesh = createCube();
-    Mesh sleeper_mesh = createSleeper();
 
 //	// create background objects
     Object *plane = engine->createObject(&plane_mesh);
