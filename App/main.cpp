@@ -63,15 +63,15 @@ int main()
 
     };
 
-    vector<Object *> points;
-    for (int i = 0; i < control_points.size(); i++)
-    {
-        Object *sphere = engine->createObject(&sphere_mesh);
-        sphere->setColor(1, 0, 0);
-        sphere->setPosition(control_points[i]);
-        sphere->setScale(0.25f);
-        points.push_back(sphere);
-    }
+//    vector<Object *> points;
+//    for (int i = 0; i < control_points.size(); i++)
+//    {
+//        Object *sphere = engine->createObject(&sphere_mesh);
+//        sphere->setColor(1, 0, 0);
+//        sphere->setPosition(control_points[i]);
+//        sphere->setScale(0.25f);
+//        points.push_back(sphere);
+//    }
 //    LineDrawer path_drawer(path, points.size(), true);
 
     std::vector<glm::vec3> spline;
