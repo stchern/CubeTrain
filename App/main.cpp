@@ -12,8 +12,7 @@ using namespace glm;
 * z - backward
 */
 
-void goAlongPath(const float *path, float *train_positions);
-void changeTrainPositions(const glm::vec3& start_position, float distance, vector<Object *>& outTrain);
+void changeTrainPositions(const glm::vec3& start_position, const std::vector<glm::vec3> control_points, float offset, vector<Object *>& outTrain);
 
 int main()
 {
@@ -80,7 +79,7 @@ int main()
     std::vector<glm::vec3> left_rails;
     std::vector<glm::vec3> right_rails;
     const float width_rails = 0.5f;
-    float step = 0.00005f;
+    float step = 0.005f;
     for (float t = 0; t < (float)control_points.size(); t += step) {
         glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, t);
         glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, t);
@@ -112,27 +111,46 @@ int main()
         train.push_back(cube);
     }
 
-    step = 0.07f;
-    for (float t = 0; t < (float)control_points.size(); t += step) {
+    step = 0.3f;
+    for (float t = 0; t < (float)SplineUtils::totalSplineLength(control_points); t += step) {
         std::vector<glm::vec3> sleeper_points;
-        glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, t);
-        glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, t);
+        float offset = SplineUtils::normalizedOffset(control_points, t);
+        glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, offset);
+        glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, offset);
         float r = atan2(spline_grad.z, -spline_grad.x);
-        glm::vec3 target_position{-2.0f * sin(r), 0.0f, -2.0f * cos(r)};
+        glm::vec3 target_perpendicular_position{-2.0f * std::sin(r), 0.0f, -2.0f * std::cos(r)};
 
-        float sign = (glm::dot(glm::normalize(target_position), {0.0, 0.0f, -1.0f})) > 0 ? 1.0f : -1.0f;
-        float cos = glm::dot(glm::normalize(target_position), {1.0, 0.0f, 0.0f});
+        float sign = (glm::dot(glm::normalize(target_perpendicular_position), {0.0, 0.0f, -1.0f})) > 0 ? 1.0f : -1.0f;
+        float cos = glm::dot(glm::normalize(target_perpendicular_position), {1.0, 0.0f, 0.0f});
         float rotationY =  glm::degrees(acos(cos)) ;
 
-        Object *plane = engine->createObject(&plane_mesh);
-        plane->setColor(1.0f, 0.25f, 0.10f);
-        plane->setPosition(spline_position);
-        plane->setRotation(-90.0f,  sign * rotationY, 0.0f);
-        plane->setScale(1.0f, 0.05f, 1.0f);
+        Object *sleeper = engine->createObject(&plane_mesh);
+        sleeper->setColor(1.0f, 0.25f, 0.10f);
+        sleeper->setPosition(spline_position);
+        sleeper->setRotation(-90.0f,  sign * rotationY, 0.0f);
+        sleeper->setScale(1.0f, 0.05f, 1.0f);
+        sleepers.push_back(sleeper);
+
+//        float r1 = atan2(spline_position.z, -spline_position.x);
+//        glm::vec3 target_path_position{-2.0f * std::sin(r1), 0.0f, -2.0f * std::cos(r1)};
+////        sign = (glm::dot(glm::normalize(target_path_position), {0.0, 0.0f, -1.0f})) > 0 ? 1.0f : -1.0f;
+////        cos = glm::dot(glm::normalize(target_path_position), {1.0, 0.0f, 0.0f});
+////        rotationY =  glm::degrees(acos(cos)) ;
+//        glm::vec3 right_point{width_rails * sin(r) + spline_position.x, spline_position.y, width_rails * std::cos(r) + spline_position.z};
+
+//        Object *rail = engine->createObject(&plane_mesh);
+//        rail->setColor(0.25f, 1.25f, 1.25f);
+//        rail->setPosition(spline_position);
+//        rail->setRotation(-90.0f, sign * rotationY, 0.0f);
+//        rail->setRotation(-90.0f, -90.0f, 0.0f);
+//        rail->setScale(1.0f, 0.05f, 1.0f);
     }
 
 
-    size_t pointIdx = 0;
+    const float totalSplineLength = SplineUtils::totalSplineLength(control_points);
+    std::cout << " total length" << totalSplineLength << std::endl;
+    float pointIdx = 0.0f ;
+    float speed = 0.001f;
     // main loop
     while (!engine->isDone())
     {
@@ -142,8 +160,12 @@ int main()
 //        path_drawer.draw();
         left_rails_drawer.draw();
         right_rails_drawer.draw();
-//        changeTrainPositions(control_points[pointIdx], distance_between_cubes, train);
-        ++pointIdx %= control_points.size();
+        const float offset = SplineUtils::normalizedOffset(control_points, pointIdx);
+        const glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, offset);
+        changeTrainPositions(spline_position, control_points, offset ,train);
+        pointIdx += speed;
+        if (pointIdx >= totalSplineLength)
+            pointIdx = 0.0f;
         engine->swap();
     }
 
@@ -152,18 +174,32 @@ int main()
 	return 0;
 }
 
-void goAlongPath(const float *path, float *train_positions)
+void changeTrainPositions(const glm::vec3& start_position, const std::vector<glm::vec3> control_points, float offset, vector<Object *>& outTrain)
 {
+    float distance = 0.03f;
 
-}
+    for (size_t idx = outTrain.size() - 1; idx > 0; --idx) {
+        const glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, offset - distance * idx);
+        glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, offset - distance * idx);
+//        std::cout<<"idx: " << idx <<" offset: " <<  offset << std::endl;
+//        std::cout<<"idx: " << idx <<" offset sub: " <<  offset - distance * idx << std::endl;
+        float r = atan2(spline_grad.z, -spline_grad.x);
+        glm::vec3 target_perpendicular_position{-2.0f * std::sin(r), 0.0f, -2.0f * std::cos(r)};
+        float sign = (glm::dot(glm::normalize(target_perpendicular_position), {0.0, 0.0f, -1.0f})) > 0 ? 1.0f : -1.0f;
+        float cos = glm::dot(glm::normalize(target_perpendicular_position), {1.0, 0.0f, 0.0f});
+        float rotationY =  glm::degrees(acos(cos)) ;
 
-void changeTrainPositions(const glm::vec3& start_position, float distance, vector<Object *>& outTrain)
-{
-    outTrain[0]->setPosition(start_position);
-    glm::vec3 next_position = start_position;
-    next_position.x += distance;
-    for (size_t idx = 1; idx < outTrain.size(); ++idx) {
-        outTrain[idx]->setPosition(next_position);
-        next_position.x += distance;
+        outTrain[idx]->setPosition(spline_position);
+        outTrain[idx]->setRotation(0.0f, sign * rotationY, 0.0f);
     }
+
+    glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, offset);
+    float r = atan2(spline_grad.z, -spline_grad.x);
+    glm::vec3 target_perpendicular_position{-2.0f * std::sin(r), 0.0f, -2.0f * std::cos(r)};
+    float sign = (glm::dot(glm::normalize(target_perpendicular_position), {0.0, 0.0f, -1.0f})) > 0 ? 1.0f : -1.0f;
+    float cos = glm::dot(glm::normalize(target_perpendicular_position), {1.0, 0.0f, 0.0f});
+    float rotationY =  glm::degrees(acos(cos)) ;
+
+    outTrain[0]->setPosition(start_position);
+    outTrain[0]->setRotation(0.0f, sign * rotationY, 0.0f);
 }
