@@ -2,6 +2,8 @@
 #include "framework/utils.h"
 #include "framework/splineutils.h"
 #include "framework/objectutils.h"
+#include <chrono>
+#include <ctime>
 #include <iostream>
 using namespace std;
 using namespace glm;
@@ -53,45 +55,35 @@ int main()
 
     };
 
-//    vector<Object *> points = ObjectUtils::createPoints(control_points, engine, sphere_mesh);
+    vector<Object *> points = ObjectUtils::createPoints(control_points, engine, sphere_mesh);
 //    LineDrawer path_drawer(path, points.size(), true);
 
 //      // spline creation
-    std::vector<glm::vec3> left_rails;
-    std::vector<glm::vec3> right_rails;
     const float spline_step = 0.005f;
-    std::vector<glm::vec3> spline = SplineUtils::splineByControlPoints(control_points, spline_step, left_rails, right_rails);
-
-//  // spline drawer creation
-    LineDrawer left_rails_drawer(left_rails, true);
-    LineDrawer right_rails_drawer(right_rails, true);
-    left_rails_drawer.setColor(0.0f, 0.0f, 0.0f);
-    right_rails_drawer.setColor(0.0f, 0.0f, 0.0f);
+    std::vector<glm::vec3> spline = SplineUtils::splineByControlPoints(control_points, spline_step);
 
 //  // cube train creation
     const glm::vec3 start_position{0.0f, -0.375f,  7.0f};
     const int n_cubes = 8;
-    vector<Object *> train = ObjectUtils::createTrain(start_position, n_cubes, engine, cube_mesh);
+    std::vector<Object *> train = ObjectUtils::createTrain(start_position, n_cubes, engine, cube_mesh);
 
-//      // sleepers creation
-    const float sleepers_step = 0.4f;
-    vector<Object *> sleepers = ObjectUtils::createSleepers(control_points, sleepers_step, engine, plane_mesh);
+//      // sleepers and rails creation
+    const int sleepers_step = 40;
+    const float rails_step = 0.01f;
+    ObjectUtils::createSleepersAndRails(control_points, sleepers_step, rails_step, engine, plane_mesh);
+
 
     const float totalSplineLength = SplineUtils::totalSplineLength(control_points);
-    std::cout << " total length" << totalSplineLength << std::endl;
-    float pointIdx = 0.0f ;
-    float speed = 0.001f;
+    float pointIdx = 0.0f;
+    float speed = 0.05f;
+
     // main loop
     while (!engine->isDone())
     {
         engine->update();
         engine->render();
 
-        left_rails_drawer.draw();
-        right_rails_drawer.draw();
-        const float offset = SplineUtils::normalizedOffset(control_points, pointIdx);
-        const glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, offset);
-        ObjectUtils::changeTrainPositions(spline_position, control_points, offset ,train);
+        ObjectUtils::changeTrainPositions(control_points, pointIdx, totalSplineLength, train);
         pointIdx += speed;
         if (pointIdx >= totalSplineLength)
             pointIdx = 0.0f;
