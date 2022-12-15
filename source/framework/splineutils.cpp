@@ -3,22 +3,11 @@
 #include <glm/gtx/spline.hpp>
 
 
-std::vector<glm::vec3> SplineUtils::splineByControlPoints(
-        const std::vector<glm::vec3>& control_points, float step,
-        std::vector<glm::vec3>& out_left_rails, std::vector<glm::vec3>& out_right_rails)
+std::vector<glm::vec3> SplineUtils::splineByControlPoints(const std::vector<glm::vec3>& control_points, float step)
 {
-    const float width_rails = 0.25f;
     std::vector<glm::vec3> spline;
     for (float t = 0; t < (float)control_points.size(); t += step) {
-        glm::vec3 spline_position = SplineUtils::point_on_loop_spline(control_points, t);
-        glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, t);
-        float r = atan2(spline_grad.z, -spline_grad.x);
-        glm::vec3 right_point{width_rails * sin(r) + spline_position.x, spline_position.y, width_rails * cos(r) + spline_position.z};
-        glm::vec3 left_point{-width_rails * sin(r) + spline_position.x, spline_position.y, -width_rails * cos(r) + spline_position.z};
-
-        spline.push_back(spline_position);
-        out_left_rails.push_back(left_point);
-        out_right_rails.push_back(right_point);
+        spline.push_back(SplineUtils::point_on_loop_spline(control_points, t));
     }
     return spline;
 }
@@ -86,4 +75,17 @@ float SplineUtils::normalizedOffset(const std::vector<glm::vec3>& control_points
     }
 
     return (float)i + pos / segmentSplineLength(control_points, i);
+}
+
+float SplineUtils::rotationY(const std::vector<glm::vec3>& control_points, float offset)
+{
+    const glm::vec3 spline_grad = SplineUtils::gradient_on_loop_spline(control_points, offset);
+    const float r = atan2(spline_grad.z, -spline_grad.x);
+    const glm::vec3 target_perpendicular_position{-2.0f * std::sin(r), 0.0f, -2.0f * std::cos(r)};
+
+    const float sign = (glm::dot(glm::normalize(target_perpendicular_position), {0.0, 0.0f, -1.0f})) > 0 ? 1.0f : -1.0f;
+    const float cos = glm::dot(glm::normalize(target_perpendicular_position), {1.0, 0.0f, 0.0f});
+    const float rotationY =  glm::degrees(acos(cos)) ;
+
+    return sign * rotationY;
 }
