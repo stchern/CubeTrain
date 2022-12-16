@@ -1,10 +1,7 @@
 #include "framework/engine.h"
 #include "framework/utils.h"
-#include "framework/splineutils.h"
+#include "framework/spline.h"
 #include "framework/objectutils.h"
-#include <chrono>
-#include <ctime>
-#include <iostream>
 using namespace std;
 using namespace glm;
 
@@ -51,16 +48,14 @@ int main()
         glm::vec3{  0.0f, -0.375f, -7.0f},
         glm::vec3{  1.0f, -0.375f, -4.0f},
         glm::vec3{  4.0f, -0.375f, -3.0f},
-        glm::vec3{  8.0f, -0.375f,  7.0f},
-
+        glm::vec3{  8.0f, -0.375f,  7.0f}
     };
 
-    vector<Object *> points = ObjectUtils::createPoints(control_points, engine, sphere_mesh);
+//    vector<Object *> points = ObjectUtils::createPoints(control_points, engine, sphere_mesh);
 //    LineDrawer path_drawer(path, points.size(), true);
 
 //      // spline creation
-    const float spline_step = 0.005f;
-    std::vector<glm::vec3> spline = SplineUtils::splineByControlPoints(control_points, spline_step);
+    const Spline spline(control_points);
 
 //  // cube train creation
     const glm::vec3 start_position{0.0f, -0.375f,  7.0f};
@@ -69,26 +64,27 @@ int main()
 
 //      // sleepers and rails creation
     const int sleepers_step = 40;
-    const float rails_step = 0.01f;
-    ObjectUtils::createSleepersAndRails(control_points, sleepers_step, rails_step, engine, plane_mesh);
+    const float rails_step = 0.005f;
+    ObjectUtils::createSleepersAndRails(spline, sleepers_step, rails_step, engine, plane_mesh);
 
-
-    const float totalSplineLength = SplineUtils::totalSplineLength(control_points);
-    float pointIdx = 0.0f;
+    float point_idx = 0.0f;
     float speed = 0.05f;
-
     // main loop
+
     while (!engine->isDone())
     {
         engine->update();
         engine->render();
 
-        ObjectUtils::changeTrainPositions(control_points, pointIdx, totalSplineLength, train);
-        pointIdx += speed;
-        if (pointIdx >= totalSplineLength)
-            pointIdx = 0.0f;
+        ObjectUtils::changeTrainPositions(spline, point_idx, train);
+        point_idx += speed;
+        if (point_idx >= spline.totalSplineLength())
+            point_idx = 0.0f;
+
         engine->swap();
     }
+
+
 
     engine->shutdown();
 
