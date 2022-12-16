@@ -13,7 +13,6 @@ using namespace glm;
 */
 
 
-
 int main()
 {
 	// initialization
@@ -52,39 +51,37 @@ int main()
     };
 
 //    vector<Object *> points = ObjectUtils::createPoints(control_points, engine, sphere_mesh);
-//    LineDrawer path_drawer(path, points.size(), true);
+//    LineDrawer path_drawer(control_points, true);
 
-//      // spline creation
+//   // spline creation
     const Spline spline(control_points);
 
 //  // cube train creation
-    const glm::vec3 start_position{0.0f, -0.375f,  7.0f};
+    const glm::vec3 start_position{0.0f, -0.375f, 7.0f};
     const int n_cubes = 8;
     std::vector<Object *> train = ObjectUtils::createTrain(start_position, n_cubes, engine, cube_mesh);
 
-//      // sleepers and rails creation
+//  // sleepers and rails creation
     const int sleepers_step = 40;
     const float rails_step = 0.005f;
     ObjectUtils::createSleepersAndRails(spline, sleepers_step, rails_step, engine, plane_mesh);
 
     float point_idx = 0.0f;
-    float speed = 0.05f;
-    // main loop
+    float speed = 1.f;
 
+    // main loop
     while (!engine->isDone())
     {
         engine->update();
         engine->render();
 
         ObjectUtils::changeTrainPositions(spline, point_idx, train);
-        point_idx += speed;
+        point_idx += speed * engine->getDeltaTime();
         if (point_idx >= spline.totalSplineLength())
             point_idx = 0.0f;
 
         engine->swap();
     }
-
-
 
     engine->shutdown();
 
