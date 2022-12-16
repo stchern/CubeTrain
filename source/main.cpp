@@ -1,6 +1,7 @@
 #include "framework/engine.h"
 #include "framework/utils.h"
-#include <iostream>
+#include "framework/spline.h"
+#include "framework/objectutils.h"
 using namespace std;
 using namespace glm;
 
@@ -10,6 +11,7 @@ using namespace glm;
 * y - up
 * z - backward
 */
+
 
 int main()
 {
@@ -27,6 +29,7 @@ int main()
 //	// create shared meshes
     Mesh plane_mesh = createPlane();
     Mesh sphere_mesh = createSphere();
+    Mesh cube_mesh = createCube();
 
 //	// create background objects
     Object *plane = engine->createObject(&plane_mesh);
@@ -36,26 +39,35 @@ int main()
     plane->setScale(20.0f);
 
 //	// path
-    const float path[] = {
-         0.0f, -0.375f,  7.0f, // 1
-        -6.0f, -0.375f,  5.0f, // 2
-        -8.0f, -0.375f,  1.0f, // 3
-        -4.0f, -0.375f, -6.0f, // 4
-         0.0f, -0.375f, -7.0f, // 5
-         1.0f, -0.375f, -4.0f, // 6
-         4.0f, -0.375f, -3.0f, // 7
-         8.0f, -0.375f,  7.0f  // 8
+    const std::vector<glm::vec3> control_points {
+        glm::vec3{  0.0f, -0.375f,  7.0f},
+        glm::vec3{ -6.0f, -0.375f,  5.0f},
+        glm::vec3{ -8.0f, -0.375f,  1.0f},
+        glm::vec3{ -4.0f, -0.375f, -6.0f},
+        glm::vec3{  0.0f, -0.375f, -7.0f},
+        glm::vec3{  1.0f, -0.375f, -4.0f},
+        glm::vec3{  4.0f, -0.375f, -3.0f},
+        glm::vec3{  8.0f, -0.375f,  7.0f}
     };
-    vector<Object *> points;
-    for (int i = 0; i < 8; i++)
-    {
-        Object *sphere = engine->createObject(&sphere_mesh);
-        sphere->setColor(1, 0, 0);
-        sphere->setPosition(path[i*3], path[i*3+1], path[i*3+2]);
-        sphere->setScale(0.25f);
-        points.push_back(sphere);
-    }
-    LineDrawer path_drawer(path, points.size(), true);
+
+//    vector<Object *> points = ObjectUtils::createPoints(control_points, engine, sphere_mesh);
+//    LineDrawer path_drawer(control_points, true);
+
+//   // spline creation
+    const Spline spline(control_points);
+
+//  // cube train creation
+    const glm::vec3 start_position{0.0f, -0.375f, 7.0f};
+    const int n_cubes = 8;
+    std::vector<Object *> train = ObjectUtils::createTrain(start_position, n_cubes, engine, cube_mesh);
+
+//  // sleepers and rails creation
+    const int sleepers_step = 40;
+    const float rails_step = 0.005f;
+    ObjectUtils::createSleepersAndRails(spline, sleepers_step, rails_step, engine, plane_mesh);
+
+    float point_idx = 0.0f;
+    float speed = 1.f;
 
     // main loop
     while (!engine->isDone())
@@ -63,13 +75,16 @@ int main()
         engine->update();
         engine->render();
 
-        path_drawer.draw();
-		
+        ObjectUtils::changeTrainPositions(spline, point_idx, train);
+        point_idx += speed * engine->getDeltaTime();
+        if (point_idx >= spline.totalSplineLength())
+            point_idx = 0.0f;
+
         engine->swap();
     }
 
     engine->shutdown();
 
-    std::cout<< "Hello world!" << std::endl;
 	return 0;
 }
+
