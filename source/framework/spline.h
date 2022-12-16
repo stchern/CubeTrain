@@ -1,18 +1,28 @@
-#ifndef SPLINEUTILS_H
-#define SPLINEUTILS_H
+#ifndef SPLINE_H
+#define SPLINE_H
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace SplineUtils
-{
+class Spline {
 
-std::vector<glm::vec3> splineByControlPoints(const std::vector<glm::vec3>& control_points, float step);
-glm::vec3 point_on_loop_spline(const std::vector<glm::vec3>& control_points, float t);
-glm::vec3 gradient_on_loop_spline(const std::vector<glm::vec3>& control_points, float t);
-float totalSplineLength(const std::vector<glm::vec3>& spline);
-float segmentSplineLength(const std::vector<glm::vec3>& spline, int segIdx);
-float normalizedOffset(const std::vector<glm::vec3>& spline, float pos);
-float rotationY(const std::vector<glm::vec3>& control_points, float offset);
+public:
+    Spline(const std::vector<glm::vec3>& control_points);
+    std::vector<glm::vec3> splineByControlPoints(float step) const;
+    glm::vec3 pointOnLoopSpline(float t) const;
+    glm::vec3 gradientOnLoopSpline(float t) const;
+    float segmentSplineLength(int segIdx) const;
+    float normalizedOffset(float pos) const;
+    float totalSplineLength() const;
+private:
+    void totalSplineLengthCount();
+    float m_total_spline_length;
+    std::vector<glm::vec3> m_control_points;
+    std::vector<float> m_segments_length;
 };
 
-#endif // SPLINEUTILS_H
+namespace SplineUtils
+{
+float rotationY(const Spline& spline, float offset);
+};
+
+#endif // SPLINE_H
