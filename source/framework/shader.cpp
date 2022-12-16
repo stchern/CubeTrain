@@ -23,10 +23,9 @@ void Shader::load(const char *vertexPath, const char *fragmentPath)
 	try 
 	{
 		// open files
-        std::string data_path = getAppPath() + std::string("../../data/");
+        std::string data_path = getAppPath() + std::string("../data/");
 		std::string abs_vertex_path = data_path + vertexPath;
         std::string abs_fragment_path = data_path + fragmentPath;
-        std::cout<< "WARNING: DATA_PATH WAS CHANGED:" << abs_vertex_path << std::endl;
 		vShaderFile.open(abs_vertex_path.c_str());
 		fShaderFile.open(abs_fragment_path.c_str());
 		std::stringstream vShaderStream, fShaderStream;
