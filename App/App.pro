@@ -10,9 +10,6 @@ include($$PWD/../source/framework/Framework.pri)
 SOURCES += \
          $$PWD/../source/main.cpp
 
-DISTFILES += \
-    $$PWD/../source/framework/Framework.pri
-
 
 INCLUDEPATH += $$PWD/../include
 DEPENDPATH += $$PWD/../include
