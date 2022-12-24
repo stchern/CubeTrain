@@ -12,7 +12,8 @@ HEADERS += \
     $$PWD/shader.h \
     $$PWD/spline.h \
     $$PWD/utils.h \
-    $$PWD/objectutils.h
+    $$PWD/objectutils.h \
+    $$PWD/railway.h
 
 
 SOURCES += \
@@ -25,12 +26,6 @@ SOURCES += \
     $$PWD/spline.cpp \
     $$PWD/utils.cpp \
     $$PWD/objectutils.cpp \
+    $$PWD/railway.cpp \
     $$PWD/glad.c
-
 }
-
-HEADERS += \
-    $$PWD/railway.h
-
-SOURCES += \
-    $$PWD/railway.cpp
