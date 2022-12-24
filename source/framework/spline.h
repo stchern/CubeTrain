@@ -15,6 +15,7 @@ public:
     float totalSplineLength() const;
 private:
     void totalSplineLengthCount();
+    float segmentSplineLengthCount(int segIdx);
     float m_total_spline_length;
     std::vector<glm::vec3> m_control_points;
     std::vector<float> m_segments_length;
@@ -22,7 +23,7 @@ private:
 
 namespace SplineUtils
 {
-float rotationY(const Spline& spline, float offset);
+    float rotationY(const Spline& spline, float offset);
 };
 
 #endif // SPLINE_H

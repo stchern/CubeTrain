@@ -1,6 +1,7 @@
 #include "spline.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/spline.hpp>
+#include <QtGlobal>
 
 Spline::Spline(const std::vector<glm::vec3>& control_points): m_control_points(control_points)
 {
@@ -11,7 +12,7 @@ Spline::Spline(const std::vector<glm::vec3>& control_points): m_control_points(c
 std::vector<glm::vec3> Spline::splineByControlPoints(float step) const
 {
     std::vector<glm::vec3> spline;
-    for (float t = 0; t < (float)m_control_points.size(); t += step)
+    for (float t = 0; t < static_cast<float>(m_control_points.size()); t += step)
         spline.push_back(pointOnLoopSpline(t));
 
     return spline;
@@ -20,11 +21,11 @@ std::vector<glm::vec3> Spline::splineByControlPoints(float step) const
 glm::vec3 Spline::pointOnLoopSpline(float t) const
 {
     const size_t size = m_control_points.size();
-    const int idx1 = (int)t;
+    const int idx1 = static_cast<int>(t);
     const int idx2 = (idx1 + 1) % size;
     const int idx3 = (idx2 + 1) % size;
     const int idx0 = idx1 >= 1 ? idx1 - 1 : size - 1;
-    t = t - (int)t;
+    t = t - static_cast<int>(t);
 
     return glm::catmullRom(m_control_points[idx0], m_control_points[idx1], m_control_points[idx2], m_control_points[idx3], t);
 }
@@ -32,11 +33,11 @@ glm::vec3 Spline::pointOnLoopSpline(float t) const
 glm::vec3 Spline::gradientOnLoopSpline(float t) const
 {
     const size_t size = m_control_points.size();
-    const int idx1 = (int)t;
+    const int idx1 = static_cast<int>(t);
     const int idx2 = (idx1 + 1) % size;
     const int idx3 = (idx2 + 1) % size;
     const int idx0 = idx1 >= 1 ? idx1 - 1 : size - 1;
-    t = t - (int)t;
+    t = t - static_cast<int>(t);
 
     const float t2 = t * t;
     const float q1 = -3.0f * t2 + 4.0f * t - 1.0f;
@@ -49,12 +50,18 @@ glm::vec3 Spline::gradientOnLoopSpline(float t) const
 
 float Spline::segmentSplineLength(int segIdx) const
 {
+    Q_ASSERT(segIdx < m_segments_length.size());
+    return m_segments_length[segIdx];
+}
+
+float Spline::segmentSplineLengthCount(int segIdx)
+{
     float result_length = 0.0f;
     const float step = 0.005f;
 
-    glm::vec3 prev_point = pointOnLoopSpline((float)segIdx);
+    glm::vec3 prev_point = pointOnLoopSpline(static_cast<float>(segIdx));
     for (float t = 0 ; t < 1.0f; t += step) {
-        const glm::vec3 current_point = pointOnLoopSpline((float)segIdx + t);
+        const glm::vec3 current_point = pointOnLoopSpline(static_cast<float>(segIdx) + t);
         result_length += glm::distance(prev_point, current_point);
         prev_point = current_point;
     }
@@ -83,7 +90,7 @@ void Spline::totalSplineLengthCount()
     float result_length = 0.0f;
 
     for (size_t segIdx = 0; segIdx < m_control_points.size(); ++segIdx) {
-        m_segments_length[segIdx] = segmentSplineLength(segIdx);
+        m_segments_length[segIdx] = segmentSplineLengthCount(segIdx);
         result_length += m_segments_length[segIdx];
     }
     m_total_spline_length = result_length;
