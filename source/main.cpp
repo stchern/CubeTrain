@@ -2,6 +2,7 @@
 #include "framework/utils.h"
 #include "framework/spline.h"
 #include "framework/objectutils.h"
+#include "framework/railway.h"
 using namespace std;
 using namespace glm;
 
@@ -33,7 +34,7 @@ int main()
 
 //	// create background objects
     Object *plane = engine->createObject(&plane_mesh);
-    plane->setColor(0.2f, 0.37f, 0.2f); // green
+    plane->setColor(0.2f, 0.2f, 0.37f); // purple
     plane->setPosition(0, -0.5f, 0);
     plane->setRotation(-90.0f, 0.0f, 0.0f);
     plane->setScale(20.0f);
@@ -62,9 +63,27 @@ int main()
     std::vector<Object *> train = ObjectUtils::createTrain(start_position, n_cubes, engine, cube_mesh);
 
 //  // sleepers and rails creation
-    const int sleepers_step = 40;
-    const float rails_step = 0.005f;
-    ObjectUtils::createSleepersAndRails(spline, sleepers_step, rails_step, engine, plane_mesh);
+    const float rails_step = 0.05f;
+    const int sleepers_count = 100;
+    const float rails_width = 0.8f;
+    std::vector<glm::vec3> sleepers_vertices;
+    std::vector<glm::vec3> inner_rails_vertices;
+    std::vector<glm::vec3> outer_rails_vertices;
+    Railway::createSleepersAndRails(spline, sleepers_count, rails_step, rails_width, inner_rails_vertices, outer_rails_vertices, sleepers_vertices);
+
+//    // create rails object
+    Mesh inner_rail_mesh = Railway::createRailMesh(inner_rails_vertices);
+    Object* inner_rail = engine->createObject(&inner_rail_mesh);
+    inner_rail->setColor(0.f, 0.f, 0.f);
+
+    Mesh outer_rail_mesh = Railway::createRailMesh(outer_rails_vertices);
+    Object* outer_rail = engine->createObject(&outer_rail_mesh);
+    outer_rail->setColor(0.f, 0.f, 0.f);
+
+//    // create sleepers object
+    Mesh sleepers_mesh = Railway::createSleepersMesh(sleepers_vertices);
+    Object* sleepers = engine->createObject(&sleepers_mesh);
+    sleepers->setColor(0.4f, 0.1f, 0.1f);
 
     float point_idx = 0.0f;
     float speed = 1.f;
