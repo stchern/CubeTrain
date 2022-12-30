@@ -1,124 +1,47 @@
-#include "objectutils.h"
-#include "spline.h"
-#include <cmath>
+#include "train.h"
+#include "framework/engine.h"
 
-std::vector<Object*> ObjectUtils::createPoints(const std::vector<glm::vec3> control_points, Engine* engine, Mesh& sphere_mesh)
+
+TrainOnSpline::TrainOnSpline(size_t n_cars, float distance_between_cars, float start_point_on_spline, const Spline& spline):
+    m_number_of_cars(n_cars), m_distance_between_cars(distance_between_cars), m_spline(spline), m_car_mesh(createCube())
 {
-    std::vector<Object*> points;
-    for (int i = 0; i < control_points.size(); i++)
+    if (start_point_on_spline >= spline.totalSplineLength())
+        start_point_on_spline = 0.0f;
+
+    Engine* engine = Engine::get();
+
+    for (int i = 0; i < m_number_of_cars; i++)
     {
-        Object *sphere = engine->createObject(&sphere_mesh);
-        sphere->setColor(1, 0, 0);
-        sphere->setPosition(control_points[i]);
-        sphere->setScale(0.25f);
-        points.push_back(sphere);
+        Object* object = engine->createObject(&m_car_mesh);
+        float position_on_spline = start_point_on_spline * distance_between_cars * (m_number_of_cars - i - 1);
+        float offset = m_spline.normalizedOffset(position_on_spline);
+        Car car(offset, object);
+        car.setObjectPosition(spline.pointOnLoopSpline(offset));
+        m_cars.push_back(car);
+        moveCar(i, position_on_spline);
     }
-    return points;
 }
 
-std::vector<Object *> ObjectUtils::createTrain(const glm::vec3 start_position, int n_cubes, Engine* engine, Mesh& cube_mesh)
+void TrainOnSpline::move(float distance)
 {
-    std::vector<Object *> train;
-    const glm::vec3 train_color{0.5f, 0.5f, 0.5f};
-    const glm::vec3 train_scale{0.5f};
-
-    for (int i = 0; i < n_cubes; i++)
-    {
-        Object *cube = engine->createObject(&cube_mesh);
-        cube->setColor(train_color);
-        cube->setPosition(start_position);
-        cube->setScale(train_scale);
-        train.push_back(cube);
-    }
-
-    return train;
+    for (size_t i = 0; i < m_number_of_cars; ++i)
+        moveCar(i, distance);
 }
 
-//void ObjectUtils::createSleepersAndRails(const Spline& spline, int sleepers_step, float rails_step, Engine* engine, Mesh& plane_mesh)
-//{
-//    int sleeper_counter = 0;
-//    const glm::vec3 rails_color{0.0f, 0.0f, 0.0f};
-//    const glm::vec3 up{0.0f, 1.0f, 0.0f};
-//    const glm::vec3 sleeper_color{1.0f, 0.25f, 0.10f};
-//    const glm::vec3 rails_scale{0.1f, 0.025f, 1.0f};
-//    const glm::vec3 rails_pos{0, -0.375f, 0};
-//    const glm::vec3 sleeper_scale{1.0f, 0.05f, 1.0f};
-//    const glm::vec3 sleeper_position_transform{0.0f, 0.015f, 0.0f};
-//    const float width_rails = 0.25f;
-
-//    for (float t = 0.0f; t < spline.totalSplineLength(); t += rails_step) {
-////    for (float t = 0.0f; t < spline.totalSplineLength() /2; t += rails_step) {
-//        const float offset = spline.normalizedOffset(t);
-//        const glm::vec3 spline_position = spline.pointOnLoopSpline(offset);
-//        const glm::vec3 spline_grad = spline.gradientOnLoopSpline(offset);
-
-//        const float r = atan2(spline_grad.z, -spline_grad.x);
-//        const glm::vec3 right_point{width_rails * sin(r) + spline_position.x, spline_position.y, width_rails * std::cos(r) + spline_position.z};
-//        const glm::vec3 left_point{-width_rails * sin(r) + spline_position.x, spline_position.y, -width_rails * std::cos(r) + spline_position.z};
-
-////        const glm::vec3 target_perpendicular_position{-2.0f * width_rails * std::sin(r), spline_position.y, -2.0f * width_rails * std::cos(r)};
-//        const glm::vec3 target_perpendicular_position{std::sin(r), 0.0f, std::cos(r)};
-//        const float sign = (glm::dot(glm::normalize(target_perpendicular_position), {0.0, 0.0f, -1.0f})) > 0 ? 1.0f : -1.0f;
-//        const float cos = glm::dot(glm::normalize(target_perpendicular_position), {1.0, 0.0f, 0.0f});
-//        const float rotationY =  glm::degrees(acos(cos)) ;
-////         glm::quat rotation =  glm::quatLookAt(glm::normalize(glm::vec3{1.0f, 0.0f, 0.0f} + target_perpendicular_position), glm::vec3{0, 1, 0});
-//        glm::quat rotation =  glm::quatLookAt(glm::normalize(spline_grad), glm::vec3{0, 1, 0});
-////        glm::quat rotation =  glm::quatLookAt(glm::normalize( glm::vec3{0.0, 0.0f, -1.0f} + target_perpendicular_position), glm::vec3{0, 1, 0});
-////        const float rotationY =  ;
-//        if (!sleeper_counter) {
-//            Object *sleeper = engine->createObject(&plane_mesh);
-//            sleeper->setColor(sleeper_color);
-//            sleeper->setPosition(spline_position + sleeper_position_transform);
-////            sleeper->setRotation(-90.0f, sign * rotationY, 0.0f);
-//            sleeper->setRotation(-90.0f, glm::degrees(rotation.y), 0.0f);
-////            sleeper->setRotation(rotation);
-//            sleeper->setScale(sleeper_scale);
-//        }
-
-//        ++sleeper_counter;
-//        sleeper_counter %= (int)sleepers_step;
-
-//        Object *right_rail = engine->createObject(&plane_mesh);
-//        right_rail->setColor(rails_color);
-//        right_rail->setPosition(right_point);
-////        right_rail->setPosition(spline_position);
-////        rotation =  glm::quatLookAt(glm::normalize(glm::vec3{0.0f, 0.0f, -1.0f} - spline_position), {0, 1, 0});
-////
-//        right_rail->setRotation(-90.0f, sign * rotationY - 90.0f, 0.0f);
-////        right_rail->setRotation(rotation);
-//        right_rail->setScale(rails_scale);
-
-//        Object *left_rail = engine->createObject(&plane_mesh);
-//        left_rail->setColor(rails_color);
-//        left_rail->setPosition(left_point);
-////        left_rail->setPosition(spline_position);
-////        rotation =  glm::quatLookAt(glm::normalize(glm::vec3{0.0f, 0.0f, -1.0f} - spline_position), {0, 1, 0});
-//        left_rail->setRotation(-90.0f, sign * rotationY - 90.0f, 0.0f);
-////        left_rail->setRotation(rotation);
-//        left_rail->setScale(rails_scale);
-//    }
-//}
-
-void ObjectUtils::changeTrainPositions(const Spline& spline, float point_idx, std::vector<Object *>& outTrain)
+void TrainOnSpline::moveCar(int carIdx, float distance)
 {
-    const float distance_between_cubes = 0.25f;
-    const glm::vec3 cube_position_transform{0.0f, 0.25f, 0.0f};
-    const float total_spline_length = spline.totalSplineLength();
-    for (size_t cube_idx = outTrain.size() - 1; cube_idx > 0; --cube_idx) {
-        const float curr_point_idx = (point_idx - distance_between_cubes * cube_idx) <= 0.0f ?
-                    std::fmod(total_spline_length + point_idx - distance_between_cubes * cube_idx, total_spline_length) :
-                    point_idx -  distance_between_cubes * cube_idx;
-        const float offset = spline.normalizedOffset(curr_point_idx);
-        const glm::vec3 spline_position = spline.pointOnLoopSpline(offset);
-        const float rotationY = SplineUtils::rotationY(spline, offset);
+    const float result_position = m_cars[carIdx].position() + distance;
+    const float offset = m_spline.normalizedOffset(result_position);
+    const glm::vec3 point_on_spline = m_spline.pointOnLoopSpline(offset);
+    const glm::vec3 prev_point_on_spline = m_spline.pointOnLoopSpline(offset - 0.01);
 
-        outTrain[cube_idx]->setPosition(spline_position + cube_position_transform);
-        outTrain[cube_idx]->setRotation(0.0f, rotationY, 0.0f);
-    }
+    glm::mat3 rotation_matrix;
+    rotation_matrix[1] = {0.0f, 1.0f, 0.0f};
+    rotation_matrix[2] = glm::normalize(prev_point_on_spline - point_on_spline);
+    rotation_matrix[0] = glm::cross(-rotation_matrix[2], rotation_matrix[1]);
+    glm::quat rotation = quat_cast(rotation_matrix);
 
-    const float offset = spline.normalizedOffset(point_idx);
-    const glm::vec3 start_position = spline.pointOnLoopSpline(offset);
-    const float rotationY = SplineUtils::rotationY(spline, offset);
-    outTrain[0]->setPosition(start_position + cube_position_transform);
-    outTrain[0]->setRotation(0.0f, rotationY, 0.0f);
+    m_cars[carIdx].setObjectRotation(rotation);
+    m_cars[carIdx].setObjectPosition(point_on_spline);
+    m_cars[carIdx].setPosition(result_position);
 }
