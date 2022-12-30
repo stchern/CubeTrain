@@ -1,7 +1,7 @@
 #include "framework/engine.h"
 #include "framework/utils.h"
 #include "framework/spline.h"
-#include "framework/objectutils.h"
+#include "framework/train.h"
 #include "framework/railway.h"
 using namespace std;
 using namespace glm;
@@ -58,9 +58,9 @@ int main()
     const Spline spline(control_points);
 
 //  // cube train creation
-    const glm::vec3 start_position{0.0f, -0.375f, 7.0f};
-    const int n_cubes = 8;
-    std::vector<Object *> train = ObjectUtils::createTrain(start_position, n_cubes, engine, cube_mesh);
+    const int n_cars = 8;
+    const float distance_between_cars = 0.4f;
+    TrainOnSpline train(n_cars, distance_between_cars, 1.0f, spline);
 
 //  // sleepers and rails creation
     const float rails_step = 0.05f;
@@ -85,8 +85,7 @@ int main()
     Object* sleepers = engine->createObject(&sleepers_mesh);
     sleepers->setColor(0.4f, 0.1f, 0.1f);
 
-    float point_idx = 0.0f;
-    float speed = 1.f;
+    float speed = 3.0f;
 
     // main loop
     while (!engine->isDone())
@@ -94,10 +93,8 @@ int main()
         engine->update();
         engine->render();
 
-        ObjectUtils::changeTrainPositions(spline, point_idx, train);
-        point_idx += speed * engine->getDeltaTime();
-        if (point_idx >= spline.totalSplineLength())
-            point_idx = 0.0f;
+        float distance = speed * engine->getDeltaTime();
+        train.move(distance);
 
         engine->swap();
     }
