@@ -1,7 +1,6 @@
 #include "spline.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/spline.hpp>
-#include <QtGlobal>
 
 Spline::Spline(const std::vector<glm::vec3>& control_points): m_control_points(control_points)
 {
@@ -71,6 +70,9 @@ float Spline::segmentSplineLengthCount(int segIdx)
 
 float Spline::normalizedOffset(float pos) const
 {
+    if (pos >= m_total_spline_length)
+        pos = std::fmod(pos, m_total_spline_length);
+
     int i = 0;
     while (pos > m_segments_length[i]) {
         pos -= m_segments_length[i];
